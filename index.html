@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkladUSA — Social Monitor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; }
+
+  .header { background: #fff; border-bottom: 1px solid #e5e5e0; padding: 16px 24px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .logo { width: 36px; height: 36px; background: #1D9E75; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 13px; }
+  .header-title { font-size: 16px; font-weight: 600; }
+  .header-sub { font-size: 12px; color: #888; margin-top: 1px; }
+  .refresh-btn { margin-left: auto; padding: 7px 14px; border: 1px solid #e0e0da; border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer; color: #444; }
+  .refresh-btn:hover { background: #f5f5f0; }
+  .last-updated { font-size: 11px; color: #aaa; margin-left: 8px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric { background: #fff; border-radius: 10px; border: 1px solid #e5e5e0; padding: 16px; }
+  .metric-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 600; }
+  .metric-delta { font-size: 12px; color: #888; margin-top: 4px; }
+  .delta-up { color: #1D9E75; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: #fff; border-radius: 10px; border: 1px solid #e5e5e0; padding: 20px; }
+  .card-title { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 5px 12px; border-radius: 6px; border: 1px solid #e0e0da; background: #fff; cursor: pointer; color: #666; }
+  .tab.active { background: #f0f0ea; color: #1a1a1a; font-weight: 500; border-color: #ccc; }
+
+  .mention { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0ea; }
+  .mention:last-child { border-bottom: none; padding-bottom: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .dot-pos { background: #1D9E75; }
+  .dot-neu { background: #aaa; }
+  .dot-neg { background: #D85A30; }
+  .mention-body { flex: 1; min-width: 0; }
+  .mention-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px; }
+  .badge-instagram { background: #FBEAF0; color: #993556; }
+  .badge-facebook { background: #E6F1FB; color: #185FA5; }
+  .badge-telegram { background: #E1F5EE; color: #0F6E56; }
+  .mention-author { font-size: 11px; color: #aaa; }
+  .mention-time { font-size: 11px; color: #bbb; }
+  .mention-text { font-size: 13px; color: #333; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .empty { text-align: center; padding: 32px 0; color: #aaa; font-size: 13px; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e0e0da; border-top-color: #1D9E75; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .topic { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .topic-name { font-size: 13px; min-width: 140px; }
+  .topic-bar-wrap { flex: 1; height: 6px; background: #f0f0ea; border-radius: 3px; overflow: hidden; }
+  .topic-bar { height: 100%; background: #1D9E75; border-radius: 3px; transition: width 0.6s ease; }
+  .topic-count { font-size: 12px; color: #888; min-width: 28px; text-align: right; }
+
+  .status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; padding: 10px 0; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .full-width { grid-column: 1 / -1; }
+
+  .heatmap { display: grid; grid-template-columns: 44px repeat(7, 1fr); gap: 3px; font-size: 11px; color: #888; }
+  .heatmap-label { display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+  .heatmap-day { text-align: center; font-weight: 500; margin-bottom: 4px; }
+  .heat { height: 26px; border-radius: 4px; background: #f0f0ea; }
+  .heat-1 { background: #9FE1CB; }
+  .heat-2 { background: #5DCAA5; }
+  .heat-3 { background: #1D9E75; }
+  .heat-4 { background: #085041; }
+
+  @media (max-width: 700px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">SU</div>
+  <div>
+    <div class="header-title">SkladUSA Social Monitor</div>
+    <div class="header-sub">Instagram · Facebook · Telegram</div>
+  </div>
+  <button class="refresh-btn" onclick="loadData()">↻ Оновити</button>
+  <span class="last-updated" id="lastUpdated"></span>
+</div>
+
+<div class="container">
+  <div class="metrics" id="metrics">
+    <div class="metric"><div class="metric-label">Всі згадки</div><div class="metric-value" id="m-total">—</div><div class="metric-delta">за весь час</div></div>
+    <div class="metric"><div class="metric-label">Instagram</div><div class="metric-value" id="m-ig">—</div><div class="metric-delta status-label"><span class="status-dot"></span> онлайн</div></div>
+    <div class="metric"><div class="metric-label">Facebook</div><div class="metric-value" id="m-fb">—</div><div class="metric-delta status-label"><span class="status-dot"></span> онлайн</div></div>
+    <div class="metric"><div class="metric-label">Telegram</div><div class="metric-value" id="m-tg">—</div><div class="metric-delta status-label"><span class="status-dot"></span> онлайн</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Останні згадки</div>
+      <div class="tabs">
+        <button class="tab active" onclick="filterMentions('all', this)">Всі</button>
+        <button class="tab" onclick="filterMentions('instagram', this)">Instagram</button>
+        <button class="tab" onclick="filterMentions('facebook', this)">Facebook</button>
+        <button class="tab" onclick="filterMentions('telegram', this)">Telegram</button>
+      </div>
+      <div id="mentionsList"><div class="empty"><span class="spinner"></span>Завантаження...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Теми згадок</div>
+      <div id="topicsList"></div>
+    </div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-title">Активність по годинах — оптимальний час публікацій</div>
+    <div class="heatmap" id="heatmap"></div>
+    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#aaa;align-items:center;">
+      <span>Менше</span>
+      <div style="display:flex;gap:3px;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#f0f0ea"></div>
+        <div style="width:14px;height:14px;border-radius:3px;" class="heat-1"></div>
+        <div style="width:14px;height:14px;border-radius:3px;" class="heat-2"></div>
+        <div style="width:14px;height:14px;border-radius:3px;" class="heat-3"></div>
+        <div style="width:14px;height:14px;border-radius:3px;" class="heat-4"></div>
+      </div>
+      <span>Більше активності</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "https://skladusa-monitor.onrender.com";
+let allMentions = [];
+let currentFilter = "all";
+
+const TOPICS_KEYWORDS = {
+  "Доставка і терміни": ["доставк", "терм", "shipping", "delivery", "чека"],
+  "Ціни і тарифи": ["ціна", "ціни", "тариф", "cost", "price", "скільки коштує"],
+  "Упаковка": ["упаков", "пакуван", "packaging", "box"],
+  "Сервіс": ["сервіс", "підтримк", "support", "допомог", "service"],
+  "Акції": ["акці", "знижк", "promo", "discount", "sale"],
+  "Відгук": ["дякую", "recommend", "рекомендую", "топ", "чудово", "супер"],
+};
+
+const HOURS = ["8:00","10:00","12:00","14:00","16:00","18:00","20:00","22:00"];
+const DAYS = ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+const HEAT_DATA = [
+  [0,1,2,1,0,0,0,0],[1,2,3,2,1,0,0,0],[0,1,2,3,2,1,0,0],
+  [1,2,3,4,3,2,1,0],[0,1,3,4,3,2,1,0],[0,0,1,2,3,3,2,1],[0,0,1,1,2,3,2,1],
+];
+
+async function loadData() {
+  document.getElementById("lastUpdated").textContent = "Оновлення...";
+  try {
+    const res = await fetch(API + "/mentions");
+    const data = await res.json();
+    allMentions = data.mentions || [];
+    renderMetrics();
+    renderMentions(currentFilter);
+    renderTopics();
+    document.getElementById("lastUpdated").textContent = "Оновлено: " + new Date().toLocaleTimeString("uk");
+  } catch(e) {
+    document.getElementById("lastUpdated").textContent = "Помилка з'єднання";
+    document.getElementById("mentionsList").innerHTML = '<div class="empty">Не вдалося завантажити дані. Сервер може спати — спробуйте через 30 сек.</div>';
+  }
+}
+
+function renderMetrics() {
+  const total = allMentions.length;
+  const ig = allMentions.filter(m => m.platform === "instagram").length;
+  const fb = allMentions.filter(m => m.platform === "facebook").length;
+  const tg = allMentions.filter(m => m.platform === "telegram").length;
+  document.getElementById("m-total").textContent = total;
+  document.getElementById("m-ig").textContent = ig;
+  document.getElementById("m-fb").textContent = fb;
+  document.getElementById("m-tg").textContent = tg;
+}
+
+function filterMentions(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderMentions(filter);
+}
+
+function renderMentions(filter) {
+  const list = document.getElementById("mentionsList");
+  let items = filter === "all" ? allMentions : allMentions.filter(m => m.platform === filter);
+  items = [...items].reverse().slice(0, 20);
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty">Згадок ще немає.<br>Вони з\'являться тут автоматично.</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(m => {
+    const time = m.time ? new Date(m.time).toLocaleString("uk", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
+    const from = m.from || "невідомо";
+    const text = m.text || "(без тексту)";
+    return `
+      <div class="mention">
+        <div class="dot dot-neu"></div>
+        <div class="mention-body">
+          <div class="mention-meta">
+            <span class="badge badge-${m.platform}">${m.platform === "instagram" ? "Instagram" : m.platform === "facebook" ? "Facebook" : "Telegram"}</span>
+            <span class="mention-author">${from}</span>
+            <span class="mention-time">${time}</span>
+          </div>
+          <div class="mention-text" title="${text.replace(/"/g,"&quot;")}">${text}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function renderTopics() {
+  const counts = {};
+  for (const topic in TOPICS_KEYWORDS) counts[topic] = 0;
+
+  allMentions.forEach(m => {
+    const text = (m.text || "").toLowerCase();
+    for (const topic in TOPICS_KEYWORDS) {
+      if (TOPICS_KEYWORDS[topic].some(kw => text.includes(kw))) counts[topic]++;
+    }
+  });
+
+  const max = Math.max(...Object.values(counts), 1);
+  const el = document.getElementById("topicsList");
+
+  if (allMentions.length === 0) {
+    el.innerHTML = '<div class="empty">Теми формуються автоматично на основі згадок</div>';
+    return;
+  }
+
+  el.innerHTML = Object.entries(counts)
+    .sort((a,b) => b[1]-a[1])
+    .map(([name, count]) => `
+      <div class="topic">
+        <div class="topic-name">${name}</div>
+        <div class="topic-bar-wrap"><div class="topic-bar" style="width:${Math.round(count/max*100)}%"></div></div>
+        <div class="topic-count">${count}</div>
+      </div>`).join("");
+}
+
+function renderHeatmap() {
+  const h = document.getElementById("heatmap");
+  let html = "<div></div>";
+  DAYS.forEach(d => { html += `<div class="heatmap-day">${d}</div>`; });
+  HOURS.forEach((hr, hi) => {
+    html += `<div class="heatmap-label">${hr}</div>`;
+    DAYS.forEach((_, di) => {
+      const v = HEAT_DATA[di][hi];
+      const best = v === 4 ? "outline:2px solid #1D9E75;outline-offset:1px;" : "";
+      html += `<div class="heat heat-${v}" style="${best}" title="${DAYS[di]} ${hr}"></div>`;
+    });
+  });
+  h.innerHTML = html;
+}
+
+renderHeatmap();
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
