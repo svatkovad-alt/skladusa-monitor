@@ -65,6 +65,14 @@
 
   .full-width { grid-column: 1 / -1; }
 
+  .idea { background: #f5f5f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+  .idea:last-child { margin-bottom: 0; }
+  .idea-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .idea-meta { font-size: 12px; color: #888; margin-bottom: 8px; }
+  .idea-platforms { display: flex; gap: 6px; flex-wrap: wrap; }
+  .write-btn { margin-top: 16px; padding: 10px 18px; border: 1px solid #e0e0da; border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer; color: #333; width: 100%; text-align: left; }
+  .write-btn:hover { background: #f5f5f0; }
+
   .heatmap { display: grid; grid-template-columns: 44px repeat(7, 1fr); gap: 3px; font-size: 11px; color: #888; }
   .heatmap-label { display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
   .heatmap-day { text-align: center; font-weight: 500; margin-bottom: 4px; }
@@ -116,6 +124,16 @@
       <div class="card-title">Теми згадок</div>
       <div id="topicsList"></div>
     </div>
+  </div>
+
+  <div class="card full-width" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:0;">Готові ідеї для контенту</div>
+      <span id="ideasUpdated" style="font-size:11px;color:#aaa;margin-left:10px;"></span>
+      <button onclick="loadIdeas(true)" style="margin-left:auto;font-size:12px;padding:4px 10px;border:1px solid #e0e0da;border-radius:6px;background:#fff;cursor:pointer;color:#666;">↻ Оновити</button>
+    </div>
+    <div id="ideasList"><div class="empty">Завантаження...</div></div>
+    <button class="write-btn" onclick="openChat()">Написати пост для Instagram ↗</button>
   </div>
 
   <div class="card full-width">
@@ -263,9 +281,43 @@ function renderHeatmap() {
   h.innerHTML = html;
 }
 
+async function loadIdeas(force = false) {
+  const el = document.getElementById("ideasList");
+  el.innerHTML = '<div class="empty"><span class="spinner"></span>Claude аналізує згадки...</div>';
+  try {
+    const res = await fetch(API + "/ideas" + (force ? "?force=1" : ""));
+    const data = await res.json();
+    const ideas = data.ideas || [];
+    if (!ideas.length) {
+      el.innerHTML = '<div class="empty">Недостатньо згадок для аналізу. Ідеї з\'являться автоматично.</div>';
+      return;
+    }
+    el.innerHTML = ideas.map(idea => `
+      <div class="idea">
+        <div class="idea-title">${idea.title}</div>
+        <div class="idea-meta">${idea.meta}</div>
+        <div class="idea-platforms">
+          ${(idea.platforms||[]).map(p => `<span class="badge badge-${p}">${p === "instagram" ? "Instagram" : p === "facebook" ? "Facebook" : "Telegram"}</span>`).join("")}
+        </div>
+      </div>
+    `).join("");
+    if (data.updated) {
+      document.getElementById("ideasUpdated").textContent = "Оновлено: " + new Date(data.updated).toLocaleString("uk");
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Не вдалося завантажити ідеї.</div>';
+  }
+}
+
+function openChat() {
+  window.open("https://claude.ai/new?q=" + encodeURIComponent("Напиши пост для Instagram для SkladUSA про переваги зберігання речей на складі в США для українців"), "_blank");
+}
+
 renderHeatmap();
 loadData();
+loadIdeas();
 setInterval(loadData, 60000);
+setInterval(() => loadIdeas(), 6 * 60 * 60 * 1000);
 </script>
 </body>
 </html>
